@@ -1,14 +1,25 @@
 #include "rma2shmem_impl.h"
 
+int rma2shmem_key;
+
 int MPI_Init(int *argc, char ***argv)
 {
     int rc = PMPI_Init(argc, argv);
+    if (rc != MPI_SUCCESS) return rc;
+
     shmem_init();
+
+    rc = PMPI_Win_create_keyval(MPI_WIN_NULL_COPY_FN, MPI_WIN_NULL_DELETE_FN, &rma2shmem_key, NULL);
+    if (rc != MPI_SUCCESS) return rc;
+
     return rc;
 }
 
 int MPI_Finalize(void)
 {
+    int rc = PMPI_Win_free_keyval(&rma2shmem_key);
+    if (rc != MPI_SUCCESS) return rc;
+
     shmem_finalize();
     return PMPI_Finalize();
 }
@@ -42,6 +53,9 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided)
     } else if (shmem_provided == SHMEM_THREAD_MULTIPLE) {
                      provided =    MPI_THREAD_MULTIPLE;
     }
+
+    rc = PMPI_Win_create_keyval(MPI_WIN_NULL_COPY_FN, MPI_WIN_NULL_DELETE_FN, &rma2shmem_key, NULL);
+    if (rc != MPI_SUCCESS) return rc;
 
     return rc;
 }

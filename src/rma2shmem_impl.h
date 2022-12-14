@@ -22,4 +22,6 @@ void RMA_Error_impl(const char *file, const int line, const char *func, const ch
 
 #define RMA_Error(...) RMA_Error_impl(__FILE__,__LINE__,__func__,__VA_ARGS__)
 
+extern int rma2shmem_key;
+
 #endif // RMA2SHMEM_IMPL_H

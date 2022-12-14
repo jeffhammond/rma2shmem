@@ -23,10 +23,11 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
     }
 
     // we create this window so we have a valid window for any unsupported operations
-    rc = MPI_Win_create(ptr, size, disp_unit, info, comm, &win);
+    rc = MPI_Win_create(ptr, size, disp_unit, info, comm, win);
     if (rc != MPI_SUCCESS) return rc;
 
-    *baseptr = ptr;
+    // this nonsense is because the argument should be void ** baseptr
+    *(void**)baseptr = ptr;
 
     return rc;
 }
