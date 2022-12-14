@@ -12,6 +12,7 @@ noinst_LTLIBRARIES = librma2shmemi.la
 librma2shmem_la_SOURCES =   src/win.c \
 			    src/rma.c \
 			    src/comm.c \
+			    src/init.c \
 			    src/utils.c
 
 librma2shmem_la_LDFLAGS = -version-info $(librma2shmem_abi_version)
