@@ -12,6 +12,7 @@
 #include <stddef.h>
 
 #include <mpi.h>
+#include <shmem.h>
 
 #include "rma2shmem.h"
 
@@ -19,6 +20,6 @@
 
 void RMA_Error_impl(const char *file, const int line, const char *func, const char *msg, ...);
 
-#define RMA_Error(...) rma2shmem_Error_impl(__FILE__,__LINE__,__func__,__VA_ARGS__)
+#define RMA_Error(...) RMA_Error_impl(__FILE__,__LINE__,__func__,__VA_ARGS__)
 
 #endif // RMA2SHMEM_IMPL_H
