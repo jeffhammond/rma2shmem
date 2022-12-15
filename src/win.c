@@ -11,7 +11,7 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
     if ((result == MPI_CONGRUENT) || (result == MPI_SIMILAR)) {
 
         MPI_Aint maxsize;
-        rc = MPI_Allreduce(&size, &maxsize, 1, MPI_AINT, MPI_MAX, comm);
+        rc = PMPI_Allreduce(&size, &maxsize, 1, MPI_AINT, MPI_MAX, comm);
         if (rc != MPI_SUCCESS) return rc;
 
         void * ptr = NULL;
@@ -38,7 +38,7 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
         *((void**)baseptr) = ptr;
 
     } else {
-        return MPI_Win_allocate(size, disp_unit, info, comm, baseptr, win);
+        return PMPI_Win_allocate(size, disp_unit, info, comm, baseptr, win);
     }
     return rc;
 }
@@ -57,7 +57,7 @@ int MPI_Win_free(MPI_Win * win)
     if (flag) {
         if (extras->shmem_window) {
             MPI_Aint aint;
-            rc = MPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
+            rc = PMPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
             void * base = (void*)aint;
             shmem_free(base);
         }
