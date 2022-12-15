@@ -1,7 +1,7 @@
 #include "rma2shmem_impl.h"
 
 // the attribute value is a pointer to the struct (in the heap)
-static bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
+bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
 {
     int flag;
     *extras = NULL;
@@ -12,7 +12,7 @@ static bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
     return (flag != 0);
 }
 
-static bool RMA_Win_uses_shmem(MPI_Win win)
+bool RMA_Win_uses_shmem(MPI_Win win)
 {
     int flag;
     rma2shmem_win_extras_s * extras;
@@ -78,10 +78,9 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
         rc = PMPI_Win_lock_all(MPI_MODE_NOCHECK, *win);
         if (rc != MPI_SUCCESS) return rc;
 
-    } else {
-        return PMPI_Win_allocate(size, disp_unit, info, comm, baseptr, win);
+        return MPI_SUCCESS;
     }
-    return rc;
+    return PMPI_Win_allocate(size, disp_unit, info, comm, baseptr, win);
 }
 
 int MPI_Win_free(MPI_Win * win)
@@ -90,26 +89,23 @@ int MPI_Win_free(MPI_Win * win)
 
     rma2shmem_win_extras_s * extras;
 
-    if ( RMA_Win_get_extras(*win, &extras) ) {
-        if (extras->shmem_window) {
+    if ( RMA_Win_get_extras(*win, &extras) && (extras->shmem_window) ) {
 
-            rc = PMPI_Win_unlock_all(*win);
-            if (rc != MPI_SUCCESS) return rc;
+        rc = PMPI_Win_unlock_all(*win);
+        if (rc != MPI_SUCCESS) return rc;
 
-            rc = PMPI_Comm_free(&(extras->comm));
-            if (rc != MPI_SUCCESS) return rc;
+        rc = PMPI_Comm_free(&(extras->comm));
+        if (rc != MPI_SUCCESS) return rc;
 
-            int flag;
-            MPI_Aint aint;
-            rc = PMPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
-            void * base = (void*)aint;
-            shmem_free(base);
-            RMA_Message("SHMEM free");
+        int flag;
+        MPI_Aint aint;
+        rc = PMPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
+        void * base = (void*)aint;
+        shmem_free(base);
+        RMA_Message("SHMEM free");
 
-            free(extras);
-        }
+        free(extras);
     }
-
     return PMPI_Win_free(win);
 }
 
@@ -121,9 +117,8 @@ int MPI_Win_lock(int lock_type, int rank, int assert, MPI_Win win)
         } else {
             return MPI_SUCCESS;
         }
-    } else {
-        return PMPI_Win_lock(lock_type, rank, assert, win);
     }
+    return PMPI_Win_lock(lock_type, rank, assert, win);
 }
 
 int MPI_Win_unlock(int rank, MPI_Win win)
@@ -131,18 +126,16 @@ int MPI_Win_unlock(int rank, MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_unlock(rank, win);
     }
+    return PMPI_Win_unlock(rank, win);
 }
 
 int MPI_Win_lock_all(int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_lock_all(assert, win);
     }
+    return PMPI_Win_lock_all(assert, win);
 }
 
 int MPI_Win_unlock_all(MPI_Win win)
@@ -150,9 +143,8 @@ int MPI_Win_unlock_all(MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_unlock_all(win);
     }
+    return PMPI_Win_unlock_all(win);
 }
 
 int MPI_Win_flush(int rank, MPI_Win win)
@@ -160,9 +152,8 @@ int MPI_Win_flush(int rank, MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_flush(rank, win);
     }
+    return PMPI_Win_flush(rank, win);
 }
 
 int MPI_Win_flush_all(MPI_Win win)
@@ -170,9 +161,8 @@ int MPI_Win_flush_all(MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_flush_all(win);
     }
+    return PMPI_Win_flush_all(win);
 }
 
 int MPI_Win_flush_local(int rank, MPI_Win win)
@@ -180,9 +170,8 @@ int MPI_Win_flush_local(int rank, MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_flush_local(rank, win);
     }
+    return PMPI_Win_flush_local(rank, win);
 }
 
 int MPI_Win_flush_local_all(MPI_Win win)
@@ -190,65 +179,56 @@ int MPI_Win_flush_local_all(MPI_Win win)
     if (RMA_Win_uses_shmem(win)) {
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
-    } else {
-        return PMPI_Win_flush_local_all(win);
     }
+    return PMPI_Win_flush_local_all(win);
 }
 
 int MPI_Win_fence(int assert, MPI_Win win)
 {
     rma2shmem_win_extras_s * extras;
-    if ( RMA_Win_get_extras(win, &extras) ) {
-        if (extras->shmem_window) {
-            RMA_Win_quiet(win);
-            return PMPI_Barrier(extras->comm);
-        }
-    } else {
-        return PMPI_Win_fence(assert, win);
+    if (RMA_Win_get_extras(win, &extras) && (extras->shmem_window)) {
+        RMA_Win_quiet(win);
+        return PMPI_Barrier(extras->comm);
     }
+    return PMPI_Win_fence(assert, win);
 }
 
 int MPI_Win_post(MPI_Group group, int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_ERR_RMA_SYNC;
-    } else {
-        return PMPI_Win_post(group, assert, win);
     }
+    return PMPI_Win_post(group, assert, win);
 }
 
 int MPI_Win_start(MPI_Group group, int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_ERR_RMA_SYNC;
-    } else {
-        return PMPI_Win_start(group, assert, win);
     }
+    return PMPI_Win_start(group, assert, win);
 }
 
 int MPI_Win_complete(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_ERR_RMA_SYNC;
-    } else {
-        return PMPI_Win_complete(win);
     }
+    return PMPI_Win_complete(win);
 }
 
 int MPI_Win_wait(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_ERR_RMA_SYNC;
-    } else {
-        return PMPI_Win_wait(win);
     }
+    return PMPI_Win_wait(win);
 }
 
 int MPI_Win_test(MPI_Win win, int * flag)
 {
     if (RMA_Win_uses_shmem(win)) {
         return MPI_ERR_RMA_SYNC;
-    } else {
-        return PMPI_Win_test(win, flag);
     }
+    return PMPI_Win_test(win, flag);
 }
