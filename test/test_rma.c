@@ -25,6 +25,7 @@ int main(int argc, char * argv[])
 
     /* Allocate all the window memory on rank 0 */
     MPI_Win_allocate(winsize, sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &baseptr, &win);
+#if 0
     MPI_Win_lock_all(0, win);
 
     if (rank==0) {
@@ -63,6 +64,7 @@ int main(int argc, char * argv[])
     }
 
     MPI_Win_unlock_all(win);
+#endif
     MPI_Win_free(&win);
 
     MPI_Finalize();
