@@ -16,6 +16,5 @@ XFAIL_TESTS   += test/test_assert_x \
 		 # end
 
 test_test_assert_x_LDADD = libbigmpi.la
-test_test_contig_x_LDADD = libbigmpi.la
 test_test_rma_x_LDADD = libbigmpi.la
 test_test_rma2_x_LDADD = libbigmpi.la
