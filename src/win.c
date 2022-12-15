@@ -12,6 +12,26 @@ bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
     return (flag != 0);
 }
 
+bool RMA_Win_get_base(MPI_Win win, void * base)
+{
+        int flag;
+        MPI_Aint aint;
+        int rc = PMPI_Win_get_attr(win, MPI_WIN_BASE, &aint, &flag);
+        if (rc != MPI_SUCCESS) return false;
+        if (!flag) return false;
+        *((void**)base) = (void*)aint;
+        return true;
+}
+
+bool RMA_Win_get_disp_unit(MPI_Win win, int * disp)
+{
+        int flag;
+        int rc = PMPI_Win_get_attr(win, MPI_WIN_DISP_UNIT, disp, &flag);
+        if (rc != MPI_SUCCESS) return false;
+        if (!flag) return false;
+        return true;
+}
+
 bool RMA_Win_uses_shmem(MPI_Win win)
 {
     int flag;
@@ -97,12 +117,14 @@ int MPI_Win_free(MPI_Win * win)
         rc = PMPI_Comm_free(&(extras->comm));
         if (rc != MPI_SUCCESS) return rc;
 
-        int flag;
-        MPI_Aint aint;
-        rc = PMPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
-        void * base = (void*)aint;
-        shmem_free(base);
-        RMA_Message("SHMEM free");
+        void * base;
+        bool rx = RMA_Win_get_base(*win, &base);
+        if (rx) {
+            shmem_free(base);
+            RMA_Message("SHMEM free");
+        } else {
+            RMA_Error("RMA_Win_get_base failed\n");
+        }
 
         free(extras);
     }
