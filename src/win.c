@@ -8,6 +8,8 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
     rc = PMPI_Comm_compare(MPI_COMM_WORLD, comm, &result);
     if (rc != MPI_SUCCESS) return rc;
 
+    RMA_Message("compare = %d\n", result);
+
     if ((result == MPI_CONGRUENT) || (result == MPI_SIMILAR)) {
 
         MPI_Aint maxsize;

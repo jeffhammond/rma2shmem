@@ -20,6 +20,7 @@
 #include "likely.h"
 
 void RMA_Error_impl(const char *file, const int line, const char *func, const char *msg, ...);
+void RMA_Message_impl(const char *file, const int line, const char *func, const char *msg, ...);
 
 #define RMA_Error(...) RMA_Error_impl(__FILE__,__LINE__,__func__,__VA_ARGS__)
 
