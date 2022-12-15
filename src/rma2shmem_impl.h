@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
@@ -23,5 +24,11 @@ void RMA_Error_impl(const char *file, const int line, const char *func, const ch
 #define RMA_Error(...) RMA_Error_impl(__FILE__,__LINE__,__func__,__VA_ARGS__)
 
 extern int rma2shmem_key;
+
+typedef struct
+{
+    bool shmem_window;
+}
+rma2shmem_win_extras_s;
 
 #endif // RMA2SHMEM_IMPL_H
