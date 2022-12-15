@@ -8,9 +8,7 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
     rc = PMPI_Comm_compare(MPI_COMM_WORLD, comm, &result);
     if (rc != MPI_SUCCESS) return rc;
 
-    RMA_Message("compare = %d\n", result);
-
-    if ((result == MPI_CONGRUENT) || (result == MPI_SIMILAR)) {
+    if (result != MPI_UNEQUAL) {
 
         MPI_Aint maxsize;
         rc = PMPI_Allreduce(&size, &maxsize, 1, MPI_AINT, MPI_MAX, comm);
@@ -25,6 +23,8 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
         ptr = shmem_malloc(bytes);
 #endif
         if (ptr == NULL) return MPI_ERR_NO_MEM;
+
+        RMA_Message("SHMEM malloc");
 
         rc = PMPI_Win_create(ptr, size, disp_unit, info, comm, win);
         if (rc != MPI_SUCCESS) return rc;
@@ -62,6 +62,7 @@ int MPI_Win_free(MPI_Win * win)
             rc = PMPI_Win_get_attr(*win, MPI_WIN_BASE, &aint, &flag);
             void * base = (void*)aint;
             shmem_free(base);
+            RMA_Message("SHMEM free");
         }
     }
 
