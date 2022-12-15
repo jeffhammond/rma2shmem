@@ -15,6 +15,6 @@ TESTS        += test/test_assert \
 XFAIL_TESTS   += test/test_assert \
 		 # end
 
-test_test_assert_LDADD = libbigmpi.la
-test_test_rma_LDADD = libbigmpi.la
-test_test_rma2_LDADD = libbigmpi.la
+test_test_assert_LDADD = librma2shmem.la
+test_test_rma_LDADD = librma2shmem.la
+test_test_rma2_LDADD = librma2shmem.la
