@@ -11,17 +11,13 @@
 
 int main(int argc, char * argv[])
 {
-    const MPI_Count test_int_max = rma2shmem_Get_max_int();
-
     MPI_Init(&argc, &argv);
 
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int l = (argc > 1) ? atoi(argv[1]) : 2;
-    int m = (argc > 2) ? atoi(argv[2]) : 17777;
-    MPI_Count n = l * test_int_max + m;
+    MPI_Count n = 1000;
 
     double * baseptr = NULL;
     MPI_Win win;

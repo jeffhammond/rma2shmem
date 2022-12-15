@@ -16,9 +16,7 @@ int main(int argc, char * argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int l = (argc > 1) ? atoi(argv[1]) : 2;
-    int m = (argc > 2) ? atoi(argv[2]) : 17777;
-    MPI_Count n = l * test_int_max + m;
+    MPI_Count n = 800;
     MPI_Count c = n/sizeof(double);
 
     double * baseptr = NULL;
