@@ -30,7 +30,9 @@ extern int rma2shmem_key;
 
 typedef struct
 {
-    bool shmem_window;
+    bool            shmem_window;
+    int             sync_state;  // TODO
+    MPI_Comm        comm;
 }
 rma2shmem_win_extras_s;
 

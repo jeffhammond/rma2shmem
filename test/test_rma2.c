@@ -24,8 +24,8 @@ int main(int argc, char * argv[])
 
     /* Allocate all the window memory on rank 0 */
     MPI_Win_allocate((MPI_Aint)(rank==0 ? n : 0), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &baseptr, &win);
-#if 0
     MPI_Win_lock_all(0, win);
+#if 0
 
     if (rank==0) {
         set_doubles(baseptr, c, 0.0);
@@ -55,9 +55,9 @@ int main(int argc, char * argv[])
             printf("SUCCESS\n");
         }
     }
+#endif
 
     MPI_Win_unlock_all(win);
-#endif
     MPI_Win_free(&win);
 
     MPI_Finalize();
