@@ -95,9 +95,6 @@ int MPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm,
         // except that then users have to do more casting when they call the function
         *((void**)baseptr) = ptr;
 
-        rc = PMPI_Win_lock_all(MPI_MODE_NOCHECK, *win);
-        if (rc != MPI_SUCCESS) return rc;
-
         return MPI_SUCCESS;
     }
     return PMPI_Win_allocate(size, disp_unit, info, comm, baseptr, win);
@@ -111,11 +108,7 @@ int MPI_Win_free(MPI_Win * win)
 
     if ( RMA_Win_get_extras(*win, &extras) && (extras->shmem_window) ) {
 
-        rc = PMPI_Win_unlock_all(*win);
-        if (rc != MPI_SUCCESS) return rc;
-
-        rc = PMPI_Comm_free(&(extras->comm));
-        if (rc != MPI_SUCCESS) return rc;
+        RMA_Win_quiet(MPI_Win win)
 
         void * base;
         bool rx = RMA_Win_get_base(*win, &base);
@@ -126,6 +119,9 @@ int MPI_Win_free(MPI_Win * win)
             RMA_Error("RMA_Win_get_base failed\n");
         }
 
+        rc = PMPI_Comm_free(&(extras->comm));
+        if (rc != MPI_SUCCESS) return rc;
+
         free(extras);
     }
     return PMPI_Win_free(win);
@@ -135,6 +131,9 @@ int MPI_Win_lock(int lock_type, int rank, int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
         if (lock_type == MPI_LOCK_EXCLUSIVE) {
+            // TODO need to implement exclusive lock state
+            //      targets need state for the actual lock
+            //      origins need a vector to know which targets they have locked
             return MPI_ERR_RMA_SYNC;
         } else {
             return MPI_SUCCESS;
@@ -146,6 +145,7 @@ int MPI_Win_lock(int lock_type, int rank, int assert, MPI_Win win)
 int MPI_Win_unlock(int rank, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -155,6 +155,7 @@ int MPI_Win_unlock(int rank, MPI_Win win)
 int MPI_Win_lock_all(int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         return MPI_SUCCESS;
     }
     return PMPI_Win_lock_all(assert, win);
@@ -163,6 +164,7 @@ int MPI_Win_lock_all(int assert, MPI_Win win)
 int MPI_Win_unlock_all(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -172,6 +174,7 @@ int MPI_Win_unlock_all(MPI_Win win)
 int MPI_Win_flush(int rank, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -181,6 +184,7 @@ int MPI_Win_flush(int rank, MPI_Win win)
 int MPI_Win_flush_all(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -190,6 +194,7 @@ int MPI_Win_flush_all(MPI_Win win)
 int MPI_Win_flush_local(int rank, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -199,6 +204,7 @@ int MPI_Win_flush_local(int rank, MPI_Win win)
 int MPI_Win_flush_local_all(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return MPI_SUCCESS;
     }
@@ -209,6 +215,7 @@ int MPI_Win_fence(int assert, MPI_Win win)
 {
     rma2shmem_win_extras_s * extras;
     if (RMA_Win_get_extras(win, &extras) && (extras->shmem_window)) {
+        // TODO detect incorrect usage
         RMA_Win_quiet(win);
         return PMPI_Barrier(extras->comm);
     }
@@ -218,6 +225,7 @@ int MPI_Win_fence(int assert, MPI_Win win)
 int MPI_Win_post(MPI_Group group, int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        RMA_Error("PSCW is not supported and will not be supported.\n");
         return MPI_ERR_RMA_SYNC;
     }
     return PMPI_Win_post(group, assert, win);
@@ -226,6 +234,7 @@ int MPI_Win_post(MPI_Group group, int assert, MPI_Win win)
 int MPI_Win_start(MPI_Group group, int assert, MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        RMA_Error("PSCW is not supported and will not be supported.\n");
         return MPI_ERR_RMA_SYNC;
     }
     return PMPI_Win_start(group, assert, win);
@@ -234,6 +243,7 @@ int MPI_Win_start(MPI_Group group, int assert, MPI_Win win)
 int MPI_Win_complete(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        RMA_Error("PSCW is not supported and will not be supported.\n");
         return MPI_ERR_RMA_SYNC;
     }
     return PMPI_Win_complete(win);
@@ -242,6 +252,7 @@ int MPI_Win_complete(MPI_Win win)
 int MPI_Win_wait(MPI_Win win)
 {
     if (RMA_Win_uses_shmem(win)) {
+        RMA_Error("PSCW is not supported and will not be supported.\n");
         return MPI_ERR_RMA_SYNC;
     }
     return PMPI_Win_wait(win);
@@ -250,6 +261,7 @@ int MPI_Win_wait(MPI_Win win)
 int MPI_Win_test(MPI_Win win, int * flag)
 {
     if (RMA_Win_uses_shmem(win)) {
+        RMA_Error("PSCW is not supported and will not be supported.\n");
         return MPI_ERR_RMA_SYNC;
     }
     return PMPI_Win_test(win, flag);

@@ -28,6 +28,14 @@ void RMA_Message_impl(const char *file, const int line, const char *func, const 
 
 extern int rma2shmem_key;
 
+/* sync_state
+    0 = no synchonization
+    1 = lock all (shared)
+    2 = lock shared (1+ targets)
+    3 = lock exclusive (1+ targets)
+    4 = 
+ */
+
 typedef struct
 {
     bool            shmem_window;
