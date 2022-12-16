@@ -26,7 +26,7 @@ bool RMA_Type_check(int count, MPI_Datatype datatype, size_t * bytes)
     rc = PMPI_Type_get_extent(datatype, &lb, &extent);
     if (rc != MPI_SUCCESS) return false;
 
-    if (extent != bytes ) {
+    if ((intptr_t)extent != (intptr_t)bytes ) {
         RMA_Message("origin bytes=%zu extent=%zu\n", bytes, extent);
         return false;
     }
@@ -49,15 +49,26 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
             if (target_contig) {
 
                 void * base = NULL;
-                rx = RMA_Win_get_base(win, &base);
-                if (rx != 0) return MPI_ERR_OTHER;
+                bool rx = RMA_Win_get_base(win, &base);
+                if (!rx) return MPI_ERR_OTHER;
 
                 int disp = 1;
                 rx = RMA_Win_get_disp_unit(win, &disp);
-                if (rx != 0) return MPI_ERR_OTHER;
+                if (!rx) return MPI_ERR_OTHER;
 
                 // map from (win,offset) to sheap offset relative to base
                 void * dest = base + (ptrdiff_t)disp * (ptrdiff_t)target_disp;
+
+                /* MPI RMA allows underflow:
+                  "The data transfer is the same as that which would occur if the origin process
+                   executed a send operation with arguments origin_addr, origin_count, origin_datatype,
+                   target_rank, tag, comm, and the target process executed a receive operation with arguments
+                   target_addr, target_count, target_datatype, source, tag, comm, where target_addr is the
+                   target buffer address computed as explained above, the
+                   values of tag are arbitrary valid matching tag values,
+                   and comm is a communicator for the group of win."             */
+                const size_t bytes;
+                bytes = origin_bytes;
 
                 // TODO MPI comm / SHMEM team suppoort
                 const int pe = target_rank;
