@@ -12,6 +12,14 @@ bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
     return (flag != 0);
 }
 
+#if 0
+MPI_Win_get_attr(win, MPI_WIN_BASE, &base, &flag),
+MPI_Win_get_attr(win, MPI_WIN_SIZE, &size, &flag),
+MPI_Win_get_attr(win, MPI_WIN_DISP_UNIT, &disp_unit, &flag),
+MPI_Win_get_attr(win, MPI_WIN_CREATE_FLAVOR, &create_kind, &flag), and
+MPI_Win_get_attr(win, MPI_WIN_MODEL, &memory_model, &flag)
+#endif
+
 bool RMA_Win_get_base(MPI_Win win, void * base)
 {
         int flag;

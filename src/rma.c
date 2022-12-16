@@ -1,12 +1,11 @@
 #include "rma2shmem_impl.h"
 
-/*
-MPI_Win_get_attr(win, MPI_WIN_BASE, &base, &flag),
-MPI_Win_get_attr(win, MPI_WIN_SIZE, &size, &flag),
-MPI_Win_get_attr(win, MPI_WIN_DISP_UNIT, &disp_unit, &flag),
-MPI_Win_get_attr(win, MPI_WIN_CREATE_FLAVOR, &create_kind, &flag), and
-MPI_Win_get_attr(win, MPI_WIN_MODEL, &memory_model, &flag)
-*/
+bool RMA_Type_builtin(MPI_Datatype dt)
+{
+    int ni, na, nd, c;
+    int rc = PMPI_Type_get_envelope(dt, &ni, &na, &nd, &c);
+    return (c == MPI_COMBINER_NAMED);
+}
 
 bool RMA_Type_check(int count, MPI_Datatype datatype, size_t * bytes)
 {
@@ -41,36 +40,37 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
     rma2shmem_win_extras_s * extras;
     if ( RMA_Win_get_extras(win, &extras) && (extras->shmem_window) ) {
 
+        bool rx;
+
+        void * base = NULL;
+        rx = RMA_Win_get_base(win, &base);
+        if (!rx) return MPI_ERR_OTHER;
+
+        int disp_unit = 1;
+        rx = RMA_Win_get_disp_unit(win, &disp_unit);
+        if (!rx) return MPI_ERR_OTHER;
+
+        // TODO MPI comm / SHMEM team suppoort
+        const int pe = target_rank;
+
         size_t origin_bytes, target_bytes;
-        bool origin_contig = RMA_Type_check(origin_count, origin_datatype, &origin_bytes);
-        bool target_contig = RMA_Type_check(target_count, target_datatype, &target_bytes);
+        const bool origin_contig = RMA_Type_check(origin_count, origin_datatype, &origin_bytes);
+        const bool target_contig = RMA_Type_check(target_count, target_datatype, &target_bytes);
 
         if (origin_contig) {
             if (target_contig) {
 
-                void * base = NULL;
-                bool rx = RMA_Win_get_base(win, &base);
-                if (!rx) return MPI_ERR_OTHER;
-
-                int disp = 1;
-                rx = RMA_Win_get_disp_unit(win, &disp);
-                if (!rx) return MPI_ERR_OTHER;
-
-                // map from (win,offset) to sheap offset relative to base
-                void * dest = base + (ptrdiff_t)disp * (ptrdiff_t)target_disp;
-
-                /* MPI RMA allows underflow:
-                  "The data transfer is the same as that which would occur if the origin process
-                   executed a send operation with arguments origin_addr, origin_count, origin_datatype,
-                   target_rank, tag, comm, and the target process executed a receive operation with arguments
-                   target_addr, target_count, target_datatype, source, tag, comm, where target_addr is the
-                   target buffer address computed as explained above, the
-                   values of tag are arbitrary valid matching tag values,
-                   and comm is a communicator for the group of win."             */
+                // MPI RMA allows underflow:
+                // "The data transfer is the same as that which would occur if the origin process
+                //  executed a send operation with arguments origin_addr, origin_count, origin_datatype,
+                //  target_rank, tag, comm, and the target process executed a receive operation with arguments
+                //  target_addr, target_count, target_datatype, source, tag, comm, where target_addr is the
+                //  target buffer address computed as explained above, the values of tag are arbitrary
+                //  valid matching tag values, and comm is a communicator for the group of win."
                 const size_t bytes = origin_bytes;
 
-                // TODO MPI comm / SHMEM team suppoort
-                const int pe = target_rank;
+                // map from (win,offset) to sheap offset relative to base
+                void * dest = base + (ptrdiff_t)disp_unit * (ptrdiff_t)target_disp;
 
                 shmem_putmem_nbi(dest, origin_addr, bytes, pe);
                 return MPI_SUCCESS;
@@ -79,8 +79,51 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
 
                 return MPI_ERR_OTHER;
 
-                // TODO contiguous origin buffer
+                int nint, nadd, ndts, combiner;
 
+                int rc = PMPI_Type_get_envelope(origin_datatype, &nint, &nadd, &ndts, &combiner);
+                if (rc != MPI_SUCCESS) return rc;
+
+                if (combiner == MPI_COMBINER_CONTIGUOUS) {
+                    // CONTIGUOUS datatypes should be detected above
+                    RMA_Error("This should not be possible\n");
+                } else if (combiner == MPI_COMBINER_VECTOR) {
+                    assert(nint==3);
+                    assert(nadd==0);
+                    assert(ndts==1);
+                    int cbs[3]; /* {count,blocklength,stride} */
+                    MPI_Datatype vbasetype[1];
+                    MPI_Type_get_contents(origin_datatype, 3, 0, 1, cbs, NULL, vbasetype);
+                    const int count       = cbs[0]; // count
+                    const int blocklength = cbs[1]; // blocklength
+                    const int stride      = cbs[2]; // stride
+                    MPI_Datatype dt = vbasetype[0];
+                    bool rx = RMA_Type_builtin(dt);
+                    if (!rx) {
+                        RMA_Error("Unsupported datatype\n");
+                        return MPI_ERR_TYPE;
+                    }
+                    int type_size;
+                    rc = PMPI_Type_size(dt, &type_size);
+                    if (rc != MPI_SUCCESS) return rc;
+
+                    // map from (win,offset) to sheap offset relative to base
+                          int8_t * dest = base + (ptrdiff_t)disp_unit * (ptrdiff_t)target_disp;
+                    const int8_t * orig = origin_addr;
+
+                    const size_t bytes = type_size * blocklength;
+                    const size_t jump  = type_size * stride;
+
+                    for (int i=0; i<count; i++) {
+                        shmem_putmem_nbi(dest, orig, bytes, pe);
+                        dest += jump;
+                        orig += bytes;
+                    }
+                    return MPI_SUCCESS;
+
+                } else {
+                    RMA_Error("Unsupported datatype\n");
+                }
             }
         } else /* origin non-contiguous */ {
 
