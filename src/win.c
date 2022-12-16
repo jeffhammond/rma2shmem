@@ -108,7 +108,7 @@ int MPI_Win_free(MPI_Win * win)
 
     if ( RMA_Win_get_extras(*win, &extras) && (extras->shmem_window) ) {
 
-        RMA_Win_quiet(MPI_Win win)
+        RMA_Win_quiet(*win);
 
         void * base;
         bool rx = RMA_Win_get_base(*win, &base);
