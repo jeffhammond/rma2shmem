@@ -67,8 +67,7 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
                    target buffer address computed as explained above, the
                    values of tag are arbitrary valid matching tag values,
                    and comm is a communicator for the group of win."             */
-                const size_t bytes;
-                bytes = origin_bytes;
+                const size_t bytes = origin_bytes;
 
                 // TODO MPI comm / SHMEM team suppoort
                 const int pe = target_rank;
