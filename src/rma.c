@@ -155,5 +155,4 @@ int MPI_Rget_accumulate(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI
                                 result_addr, result_count, result_datatype,
                                 target_rank, target_disp, target_count, target_datatype,
                                 op, win, request);
-    return rc;
 }
