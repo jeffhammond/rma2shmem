@@ -1,58 +1,5 @@
 #include "rma2shmem_impl.h"
 
-// the attribute value is a pointer to the struct (in the heap)
-bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras)
-{
-    int flag;
-    *extras = NULL;
-
-    int rc = PMPI_Win_get_attr(win, rma2shmem_key, extras, &flag);
-    if (rc != MPI_SUCCESS) return false;
-
-    return (flag != 0);
-}
-
-#if 0
-MPI_Win_get_attr(win, MPI_WIN_BASE, &base, &flag),
-MPI_Win_get_attr(win, MPI_WIN_SIZE, &size, &flag),
-MPI_Win_get_attr(win, MPI_WIN_DISP_UNIT, &disp_unit, &flag),
-MPI_Win_get_attr(win, MPI_WIN_CREATE_FLAVOR, &create_kind, &flag), and
-MPI_Win_get_attr(win, MPI_WIN_MODEL, &memory_model, &flag)
-#endif
-
-bool RMA_Win_get_base(MPI_Win win, void * base)
-{
-        int flag;
-        MPI_Aint aint;
-        int rc = PMPI_Win_get_attr(win, MPI_WIN_BASE, &aint, &flag);
-        if (rc != MPI_SUCCESS) return false;
-        if (!flag) return false;
-        *((void**)base) = (void*)aint;
-        return true;
-}
-
-bool RMA_Win_get_disp_unit(MPI_Win win, int * disp)
-{
-        int flag;
-        int rc = PMPI_Win_get_attr(win, MPI_WIN_DISP_UNIT, disp, &flag);
-        if (rc != MPI_SUCCESS) return false;
-        if (!flag) return false;
-        return true;
-}
-
-bool RMA_Win_uses_shmem(MPI_Win win)
-{
-    int flag;
-    rma2shmem_win_extras_s * extras;
-
-    if ( RMA_Win_get_extras(win, &extras) ) {
-        if (extras->shmem_window) {
-            return true;
-        }
-    }
-    return false;
-}
-
 static void RMA_Win_quiet(MPI_Win win)
 {
     shmem_quiet();

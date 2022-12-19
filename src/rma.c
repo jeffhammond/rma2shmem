@@ -1,39 +1,5 @@
 #include "rma2shmem_impl.h"
 
-bool RMA_Type_builtin(MPI_Datatype dt)
-{
-    int ni, na, nd, c;
-    int rc = PMPI_Type_get_envelope(dt, &ni, &na, &nd, &c);
-    return (c == MPI_COMBINER_NAMED);
-}
-
-bool RMA_Type_check(int count, MPI_Datatype datatype, size_t * bytes)
-{
-    int rc = MPI_SUCCESS;
-    *bytes = -1;
-
-    int size;
-    rc = PMPI_Type_size(datatype, &size);
-    if (rc != MPI_SUCCESS) return false;
-
-    MPI_Aint lb; // unused
-
-    // The extent of a datatype is defined to be the span from the first byte to the last byte
-    // occupied by entries in this datatype, rounded up to satisfy alignment requirements.
-
-    MPI_Aint extent;
-    rc = PMPI_Type_get_extent(datatype, &lb, &extent);
-    if (rc != MPI_SUCCESS) return false;
-
-    if ((intptr_t)extent != (intptr_t)bytes ) {
-        RMA_Message("origin bytes=%zu extent=%zu\n", bytes, extent);
-        return false;
-    }
-
-    *bytes = count * size;
-    return true;
-}
-
 int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
             int target_rank, MPI_Aint target_disp, int target_count, MPI_Datatype target_datatype, MPI_Win win)
 {

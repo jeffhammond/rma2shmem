@@ -48,5 +48,8 @@ bool RMA_Win_get_extras(MPI_Win win, rma2shmem_win_extras_s ** extras);
 bool RMA_Win_uses_shmem(MPI_Win win);
 bool RMA_Win_get_base(MPI_Win win, void * base);
 bool RMA_Win_get_disp_unit(MPI_Win win, int * disp);
+bool RMA_Win_get_size(MPI_Win win, MPI_Aint * base);
+bool RMA_Type_builtin(MPI_Datatype dt);
+bool RMA_Type_check(int count, MPI_Datatype datatype, size_t * bytes);
 
 #endif // RMA2SHMEM_IMPL_H
