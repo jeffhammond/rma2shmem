@@ -16,6 +16,10 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
         rx = RMA_Win_get_disp_unit(win, &disp_unit);
         if (!rx) return MPI_ERR_OTHER;
 
+        MPI_Aint win_size = 0;
+        rx = RMA_Win_get_size(win, &win_size);
+        if (!rx) return MPI_ERR_OTHER;
+
         // TODO MPI comm / SHMEM team suppoort
         const int pe = target_rank;
 
@@ -35,8 +39,13 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
                 //  valid matching tag values, and comm is a communicator for the group of win."
                 const size_t bytes = origin_bytes;
 
+                const ptrdiff_t offset = (ptrdiff_t)disp_unit * (ptrdiff_t)target_disp;
+                if ((offset+bytes) > win_size) {
+                    RMA_Error("illegal access: win_size=%zu offset=%zd bytes=%zu\n", win_size, offset, bytes);
+                }
+
                 // map from (win,offset) to sheap offset relative to base
-                void * dest = base + (ptrdiff_t)disp_unit * (ptrdiff_t)target_disp;
+                void * dest = base + offset;
 
                 shmem_putmem_nbi(dest, origin_addr, bytes, pe);
                 return MPI_SUCCESS;
@@ -87,6 +96,37 @@ int MPI_Put(RMA2SHMEM_CONST void *origin_addr, int origin_count, MPI_Datatype or
                     }
                     return MPI_SUCCESS;
 
+#if 1
+                } else if (combiner == MPI_COMBINER_SUBARRAY) {
+                    // ndims + sizes[ndims] + subsizes[ndims] + starts[ndims] + storage_order
+                    assert( (nint-2) % 3 == 0);
+                    int * vint = malloc( nint * sizeof(int) );
+                    MPI_Datatype vbasetype[1];
+                    MPI_Type_get_contents(origin_datatype, nint, 0, 1, vint, NULL, vbasetype);
+                    const int ndims = vint[0];
+                    int * sizes    = malloc( ndims * sizeof(int) );
+                    int * subsizes = malloc( ndims * sizeof(int) );
+                    int * starts   = malloc( ndims * sizeof(int) );
+                    for (int i=0; i<ndims; i++) {
+                        sizes[i]    = vint[i+1];
+                        subsizes[i] = vint[i+1+ndims];
+                        starts[i]   = vint[i+1+ndims*2];
+                    }
+                    const int storage_order = vint[nint-1];
+                    free(vint);
+
+                    RMA_Message("ndims=%d, storage_order=%s\n", ndims,
+                                 (storage_order == MPI_ORDER_C) ? "MPI_ORDER_C" :
+                                 ((storage_order == MPI_ORDER_FORTRAN) ? "MPI_ORDER_FORTRAN" : "Invalid MPI storage oorder"));
+                    for (int i=0; i<ndims; i++) {
+                        RMA_Message("sizes[%d]=%d subsizes[%d]=%d starts[%d]=%d\n",
+                                     i, sizes[i], i, subsizes[i], i, starts[i]);
+                    }
+
+                    free(starts);
+                    free(subsizes);
+                    free(sizes);
+#endif
                 } else {
                     RMA_Error("Unsupported datatype\n");
                 }
